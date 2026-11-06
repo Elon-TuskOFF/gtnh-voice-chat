@@ -34,6 +34,7 @@ import io.netty.buffer.Unpooled;
 
 /** Dedicated-server safe: client, LWJGL, and audio classes are confined to the sided client proxy. */
 public class CommonProxy {
+
     public static final String CHANNEL = "gtnhvoice";
     protected static final Logger LOG = LogManager.getLogger(CHANNEL);
     protected FMLEventChannel channel;
@@ -46,7 +47,9 @@ public class CommonProxy {
         config = new VoiceConfig(event.getSuggestedConfigurationFile());
         channel = NetworkRegistry.INSTANCE.newEventDrivenChannel(CHANNEL);
         channel.register(this);
-        FMLCommonHandler.instance().bus().register(this);
+        FMLCommonHandler.instance()
+            .bus()
+            .register(this);
     }
 
     public void startServer() {
@@ -56,12 +59,18 @@ public class CommonProxy {
             relay = new VoiceRelay(config.bindAddress, config.port, config.range, message -> LOG.warn(message));
             LOG.info("Optional proximity voice relay listening on UDP {}:{}", config.bindAddress, relay.port());
         } catch (SocketException ex) {
-            LOG.error("Cannot bind voice UDP port {}. Minecraft remains available; voice is disabled.", config.port, ex);
+            LOG.error(
+                "Cannot bind voice UDP port {}. Minecraft remains available; voice is disabled.",
+                config.port,
+                ex);
         }
     }
 
     public void stopServer() {
-        if (relay != null) { relay.close(); relay = null; }
+        if (relay != null) {
+            relay.close();
+            relay = null;
+        }
         hellos.clear();
         welcomed.clear();
     }
@@ -91,7 +100,10 @@ public class CommonProxy {
     @SubscribeEvent
     public void serverTick(TickEvent.ServerTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
-        if (relay == null) { hellos.clear(); return; }
+        if (relay == null) {
+            hellos.clear();
+            return;
+        }
         MinecraftServer server = MinecraftServer.getServer();
         if (server == null) return;
         Map<UUID, VoicePosition> positions = new HashMap<>();
@@ -99,8 +111,8 @@ public class CommonProxy {
         for (Object entry : server.getConfigurationManager().playerEntityList) {
             EntityPlayerMP player = (EntityPlayerMP) entry;
             online.add(player);
-            if (!player.isDead) positions.put(player.getUniqueID(),
-                new VoicePosition(player.dimension, player.posX, player.posY, player.posZ));
+            if (!player.isDead) positions
+                .put(player.getUniqueID(), new VoicePosition(player.dimension, player.posX, player.posY, player.posZ));
         }
         relay.updatePositions(positions);
         // Bound handshake work per tick, even for a client flooding the custom channel.
@@ -110,9 +122,14 @@ public class CommonProxy {
             if (!online.contains(player) || !welcomed.add(player.getUniqueID())) continue;
             VoiceRelay.Credentials credentials = relay.register(player.getUniqueID());
             int port = config.advertisedPort == 0 ? config.port : config.advertisedPort;
-            byte[] welcome = ByteBuffer.allocate(39).put((byte) 1).putInt(VoiceProtocol.VERSION).putShort((short) port)
-                .putLong(credentials.id.getMostSignificantBits()).putLong(credentials.id.getLeastSignificantBits())
-                .put(credentials.key).array();
+            byte[] welcome = ByteBuffer.allocate(39)
+                .put((byte) 1)
+                .putInt(VoiceProtocol.VERSION)
+                .putShort((short) port)
+                .putLong(credentials.id.getMostSignificantBits())
+                .putLong(credentials.id.getLeastSignificantBits())
+                .put(credentials.key)
+                .array();
             channel.sendTo(new FMLProxyPacket(Unpooled.wrappedBuffer(welcome), CHANNEL), player);
         }
     }

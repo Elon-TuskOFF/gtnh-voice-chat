@@ -2,11 +2,15 @@ package dev.elontusk.gtnhvoice.core;
 
 /** Immutable main-thread world snapshot; the UDP thread never touches Minecraft entities. */
 public final class VoicePosition {
+
     public final int dimension;
     public final double x, y, z;
 
     public VoicePosition(int dimension, double x, double y, double z) {
-        this.dimension = dimension; this.x = x; this.y = y; this.z = z;
+        this.dimension = dimension;
+        this.x = x;
+        this.y = y;
+        this.z = z;
     }
 
     public double gainTo(VoicePosition other, double range) {

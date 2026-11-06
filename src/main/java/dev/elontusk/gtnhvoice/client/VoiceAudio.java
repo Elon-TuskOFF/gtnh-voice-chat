@@ -18,6 +18,7 @@ import dev.elontusk.gtnhvoice.core.AudioCodec;
 
 /** Audio work stays off both Minecraft and Netty threads. Microphone opens only while PTT is held. */
 public final class VoiceAudio implements Closeable {
+
     private static final AudioFormat FORMAT = new AudioFormat(AudioCodec.SAMPLE_RATE, 16, 1, true, false);
     private final Object captureSignal = new Object();
     private final Map<UUID, Stream> streams = new HashMap<>();
@@ -35,14 +36,20 @@ public final class VoiceAudio implements Closeable {
     private volatile SourceDataLine speakers;
 
     public VoiceAudio(Consumer<byte[]> transmit, Consumer<String> errors, double volume) {
-        this.transmit = transmit; this.errors = errors; this.volume = volume;
+        this.transmit = transmit;
+        this.errors = errors;
+        this.volume = volume;
         captureWorker = new Thread(this::capture, "GTNH Voice microphone");
         playbackWorker = new Thread(this::play, "GTNH Voice playback");
-        captureWorker.setDaemon(true); playbackWorker.setDaemon(true);
-        captureWorker.start(); playbackWorker.start();
+        captureWorker.setDaemon(true);
+        playbackWorker.setDaemon(true);
+        captureWorker.start();
+        playbackWorker.start();
     }
 
-    public boolean isCapturing() { return capturing; }
+    public boolean isCapturing() {
+        return capturing;
+    }
 
     public void setTransmitting(boolean value) {
         synchronized (captureSignal) {
@@ -55,7 +62,9 @@ public final class VoiceAudio implements Closeable {
         muted = value;
         if (value) {
             setTransmitting(false);
-            synchronized (streams) { streams.clear(); }
+            synchronized (streams) {
+                streams.clear();
+            }
         }
     }
 
@@ -69,7 +78,8 @@ public final class VoiceAudio implements Closeable {
             Stream stream = streams.get(speaker);
             if (stream == null) {
                 if (streams.size() >= 16) return;
-                stream = new Stream(); streams.put(speaker, stream);
+                stream = new Stream();
+                streams.put(speaker, stream);
             }
             // Prefer fresh speech over accumulating latency when the receiver falls behind.
             if (stream.frames.size() >= 5) stream.frames.removeFirst();
@@ -102,11 +112,14 @@ public final class VoiceAudio implements Closeable {
                     }
                     if (filled != pcm.length || !running || !transmitting || muted) break;
                     short[] samples = new short[AudioCodec.SAMPLES];
-                    for (int i = 0; i < samples.length; i++) samples[i] = (short) ((pcm[i * 2] & 255) | (pcm[i * 2 + 1] << 8));
+                    for (int i = 0; i < samples.length; i++)
+                        samples[i] = (short) ((pcm[i * 2] & 255) | (pcm[i * 2 + 1] << 8));
                     transmit.accept(AudioCodec.encode(samples));
                 }
             } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt(); break;
+                Thread.currentThread()
+                    .interrupt();
+                break;
             } catch (Exception ex) {
                 if (running) errors.accept("Microphone unavailable. Check the OS default input device and reconnect.");
                 // Do not repeatedly open an unavailable device while the key remains held.
@@ -134,10 +147,14 @@ public final class VoiceAudio implements Closeable {
                 int[] mix = new int[AudioCodec.SAMPLES];
                 long now = System.nanoTime();
                 synchronized (streams) {
-                    Iterator<Stream> iterator = streams.values().iterator();
+                    Iterator<Stream> iterator = streams.values()
+                        .iterator();
                     while (iterator.hasNext()) {
                         Stream stream = iterator.next();
-                        if (now - stream.updated > 250_000_000L) { iterator.remove(); continue; }
+                        if (now - stream.updated > 250_000_000L) {
+                            iterator.remove();
+                            continue;
+                        }
                         // Short startup jitter buffer. Empty streams contribute silence, never old audio.
                         if (!stream.started && stream.frames.size() < 2 && now - stream.created < 40_000_000L) continue;
                         stream.started = true;
@@ -148,14 +165,19 @@ public final class VoiceAudio implements Closeable {
                 byte[] pcm = new byte[AudioCodec.SAMPLES * 2];
                 for (int i = 0; i < mix.length; i++) {
                     int sample = Math.max(-32768, Math.min(32767, mix[i]));
-                    pcm[i * 2] = (byte) sample; pcm[i * 2 + 1] = (byte) (sample >> 8);
+                    pcm[i * 2] = (byte) sample;
+                    pcm[i * 2 + 1] = (byte) (sample >> 8);
                 }
                 line.write(pcm, 0, pcm.length);
             }
         } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
+            Thread.currentThread()
+                .interrupt();
         } catch (Exception ex) {
-            if (running) { playbackFailed = true; errors.accept("Speakers unavailable. Check the OS default output device and reconnect."); }
+            if (running) {
+                playbackFailed = true;
+                errors.accept("Speakers unavailable. Check the OS default output device and reconnect.");
+            }
         } finally {
             if (line != null) line.close();
             speakers = null;
@@ -168,13 +190,24 @@ public final class VoiceAudio implements Closeable {
         transmitting = false;
         if (microphone != null) microphone.close();
         if (speakers != null) speakers.close();
-        synchronized (captureSignal) { captureSignal.notifyAll(); }
-        synchronized (streams) { streams.clear(); streams.notifyAll(); }
-        try { captureWorker.join(1000); playbackWorker.join(1000); }
-        catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+        synchronized (captureSignal) {
+            captureSignal.notifyAll();
+        }
+        synchronized (streams) {
+            streams.clear();
+            streams.notifyAll();
+        }
+        try {
+            captureWorker.join(1000);
+            playbackWorker.join(1000);
+        } catch (InterruptedException ex) {
+            Thread.currentThread()
+                .interrupt();
+        }
     }
 
     private static final class Stream {
+
         final ArrayDeque<short[]> frames = new ArrayDeque<>();
         final long created = System.nanoTime();
         long updated;

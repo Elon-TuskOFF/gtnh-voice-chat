@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 
 /** One UDP socket for all clients. No Minecraft or audio-device dependencies. */
 public final class VoiceRelay implements Closeable {
+
     private final DatagramSocket socket;
     private final Thread worker;
     private final Consumer<String> errors;
@@ -37,7 +38,9 @@ public final class VoiceRelay implements Closeable {
         worker.start();
     }
 
-    public int port() { return socket.getLocalPort(); }
+    public int port() {
+        return socket.getLocalPort();
+    }
 
     /** Called on the server thread after a compatible client's explicit opt-in. Rotates old credentials. */
     public synchronized Credentials register(UUID player) {
@@ -85,8 +88,8 @@ public final class VoiceRelay implements Closeable {
         long now = System.nanoTime();
         // Limit cryptographic work as well as accepted audio traffic.
         if (!sender.limit.allow(now)) return;
-        VoiceProtocol.Message message = VoiceProtocol.open(packet, id, sender.credentials.key,
-            VoiceProtocol.CLIENT_DIRECTION);
+        VoiceProtocol.Message message = VoiceProtocol
+            .open(packet, id, sender.credentials.key, VoiceProtocol.CLIENT_DIRECTION);
         if (message.sequence <= sender.lastSequence) return;
         if (message.type != VoiceProtocol.PING && message.type != VoiceProtocol.AUDIO) return;
         if (message.type == VoiceProtocol.PING && message.payload.length != 0) return;
@@ -106,15 +109,23 @@ public final class VoiceRelay implements Closeable {
             double gain = source.gainTo(snapshot.get(listener.player), range);
             if (!(gain > 0)) continue;
             byte[] playback = ByteBuffer.allocate(18 + AudioCodec.FRAME_BYTES)
-                .putLong(sender.player.getMostSignificantBits()).putLong(sender.player.getLeastSignificantBits())
-                .putShort((short) Math.round(gain * 65535)).put(message.payload).array();
+                .putLong(sender.player.getMostSignificantBits())
+                .putLong(sender.player.getLeastSignificantBits())
+                .putShort((short) Math.round(gain * 65535))
+                .put(message.payload)
+                .array();
             send(listener, VoiceProtocol.PLAYBACK, playback);
         }
     }
 
     private void send(Session session, int type, byte[] payload) throws GeneralSecurityException {
-        byte[] packet = VoiceProtocol.seal(session.credentials.id, session.credentials.key,
-            VoiceProtocol.SERVER_DIRECTION, type, session.outgoing++, payload);
+        byte[] packet = VoiceProtocol.seal(
+            session.credentials.id,
+            session.credentials.key,
+            VoiceProtocol.SERVER_DIRECTION,
+            type,
+            session.outgoing++,
+            payload);
         try {
             socket.send(new DatagramPacket(packet, packet.length, session.address));
         } catch (IOException ignored) {
@@ -127,20 +138,28 @@ public final class VoiceRelay implements Closeable {
         socket.close();
         sessions.clear();
         positions = Collections.emptyMap();
-        try { worker.join(1000); } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+        try {
+            worker.join(1000);
+        } catch (InterruptedException ex) {
+            Thread.currentThread()
+                .interrupt();
+        }
     }
 
     public static final class Credentials {
+
         public final UUID id;
         public final byte[] key;
 
         public Credentials(UUID id, byte[] key) {
             if (key.length != 16) throw new IllegalArgumentException("Expected AES-128 key");
-            this.id = id; this.key = key.clone();
+            this.id = id;
+            this.key = key.clone();
         }
     }
 
     private static final class Session {
+
         final UUID player;
         final Credentials credentials;
         final RateLimit limit = new RateLimit(60, 15, System.nanoTime());
@@ -149,6 +168,9 @@ public final class VoiceRelay implements Closeable {
         long lastSeen;
         SocketAddress address;
 
-        Session(UUID player, Credentials credentials) { this.player = player; this.credentials = credentials; }
+        Session(UUID player, Credentials credentials) {
+            this.player = player;
+            this.credentials = credentials;
+        }
     }
 }

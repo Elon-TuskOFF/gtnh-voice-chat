@@ -16,7 +16,23 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew --no-daemon build
+      - name: Build and test
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon build 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"
+      - name: Summarize build failure
+        if: failure()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/gradle-build.log"; then
+            {
+              echo '### Gradle build failure'
+              echo '```text'
+              tail -n 200 "$RUNNER_TEMP/gradle-build.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: gtnh-voice-chat

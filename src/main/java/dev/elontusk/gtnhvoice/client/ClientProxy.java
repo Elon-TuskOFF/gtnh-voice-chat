@@ -30,7 +30,11 @@ import dev.elontusk.gtnhvoice.core.VoiceRelay;
 import io.netty.buffer.Unpooled;
 
 public final class ClientProxy extends CommonProxy {
-    private final KeyBinding pushToTalk = new KeyBinding("key.gtnhvoice.ptt", Keyboard.KEY_V, "key.categories.gtnhvoice");
+
+    private final KeyBinding pushToTalk = new KeyBinding(
+        "key.gtnhvoice.ptt",
+        Keyboard.KEY_V,
+        "key.categories.gtnhvoice");
     private final KeyBinding mute = new KeyBinding("key.gtnhvoice.mute", Keyboard.KEY_NONE, "key.categories.gtnhvoice");
     private final ArrayBlockingQueue<Welcome> welcomes = new ArrayBlockingQueue<>(4);
     private final ArrayBlockingQueue<String> errors = new ArrayBlockingQueue<>(8);
@@ -60,7 +64,10 @@ public final class ClientProxy extends CommonProxy {
 
     @SubscribeEvent
     public void disconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
-        if (connection == event.manager) { connection = null; registered = null; }
+        if (connection == event.manager) {
+            connection = null;
+            registered = null;
+        }
     }
 
     @SubscribeEvent
@@ -71,7 +78,9 @@ public final class ClientProxy extends CommonProxy {
     }
 
     @Override
-    protected void receiveWelcome(byte[] packet, NetworkManager manager) { welcomes.offer(new Welcome(manager, packet)); }
+    protected void receiveWelcome(byte[] packet, NetworkManager manager) {
+        welcomes.offer(new Welcome(manager, packet));
+    }
 
     @SubscribeEvent
     public void clientTick(TickEvent.ClientTickEvent event) {
@@ -91,8 +100,14 @@ public final class ClientProxy extends CommonProxy {
         ticks++;
         // REGISTER comes from the remote peer. Never send our handshake to a server without this channel.
         if (!helloSent && registered == current) {
-            channel.sendToServer(new FMLProxyPacket(Unpooled.wrappedBuffer(
-                ByteBuffer.allocate(5).put((byte) 0).putInt(VoiceProtocol.VERSION).array()), CHANNEL));
+            channel.sendToServer(
+                new FMLProxyPacket(
+                    Unpooled.wrappedBuffer(
+                        ByteBuffer.allocate(5)
+                            .put((byte) 0)
+                            .putInt(VoiceProtocol.VERSION)
+                            .array()),
+                    CHANNEL));
             helloSent = true;
         }
         Welcome welcome;
@@ -100,9 +115,16 @@ public final class ClientProxy extends CommonProxy {
             if (welcome.manager != current || voice != null) continue;
             startVoice(welcome, mc);
         }
-        if (mute.isPressed()) { muted = !muted; if (audio != null) audio.setMuted(muted); }
-        if (audio != null) audio.setTransmitting(voice != null && voice.isConnected()
-            && !muted && mc.inGameHasFocus && mc.currentScreen == null && pushToTalk.getIsKeyPressed());
+        if (mute.isPressed()) {
+            muted = !muted;
+            if (audio != null) audio.setMuted(muted);
+        }
+        if (audio != null) audio.setTransmitting(
+            voice != null && voice.isConnected()
+                && !muted
+                && mc.inGameHasFocus
+                && mc.currentScreen == null
+                && pushToTalk.getIsKeyPressed());
         String error;
         while ((error = errors.poll()) != null) mc.thePlayer.addChatMessage(new ChatComponentText("[Voice] " + error));
     }
@@ -112,7 +134,8 @@ public final class ClientProxy extends CommonProxy {
         if (b.get() != 1 || b.getInt() != VoiceProtocol.VERSION) return;
         int port = b.getShort() & 65535;
         UUID id = new UUID(b.getLong(), b.getLong());
-        byte[] key = new byte[16]; b.get(key);
+        byte[] key = new byte[16];
+        b.get(key);
         if (port == 0) return;
         SocketAddress remote = current.getSocketAddress();
         // Integrated servers use Netty's local channel rather than an IP socket.
@@ -127,8 +150,10 @@ public final class ClientProxy extends CommonProxy {
             audio.setMuted(muted);
             VoiceAudio output = audio;
             voice = new VoiceClient(endpoint, new VoiceRelay.Credentials(id, key), output::accept, errors::offer);
-            mc.thePlayer.addChatMessage(new ChatComponentText("[Voice] Hold "
-                + GameSettings.getKeyDisplayString(pushToTalk.getKeyCode()) + " to talk. Change bindings in Controls."));
+            mc.thePlayer.addChatMessage(
+                new ChatComponentText(
+                    "[Voice] Hold " + GameSettings.getKeyDisplayString(pushToTalk.getKeyCode())
+                        + " to talk. Change bindings in Controls."));
         } catch (Exception ex) {
             closeVoice();
             errors.offer("Cannot start UDP voice: " + ex.getMessage());
@@ -139,20 +164,32 @@ public final class ClientProxy extends CommonProxy {
     public void overlay(RenderGameOverlayEvent.Text event) {
         if (current == null || Minecraft.getMinecraft().thePlayer == null) return;
         if (muted) event.left.add("Voice: muted");
-        else if (voice != null && voice.isConnected()) event.left.add(audio != null && audio.isCapturing()
-            ? "Voice: talking" : "Voice: ready (" + GameSettings.getKeyDisplayString(pushToTalk.getKeyCode()) + ")");
+        else if (voice != null && voice.isConnected()) event.left.add(
+            audio != null && audio.isCapturing() ? "Voice: talking"
+                : "Voice: ready (" + GameSettings.getKeyDisplayString(pushToTalk.getKeyCode()) + ")");
         else if (voice != null) event.left.add("Voice: UDP unavailable (check server port/firewall)");
         else if (helloSent && ticks > 100) event.left.add("Voice: disabled or incompatible on this server");
     }
 
     private void closeVoice() {
-        if (audio != null) { audio.close(); audio = null; }
-        if (voice != null) { voice.close(); voice = null; }
+        if (audio != null) {
+            audio.close();
+            audio = null;
+        }
+        if (voice != null) {
+            voice.close();
+            voice = null;
+        }
     }
 
     private static final class Welcome {
+
         final NetworkManager manager;
         final byte[] packet;
-        Welcome(NetworkManager manager, byte[] packet) { this.manager = manager; this.packet = packet; }
+
+        Welcome(NetworkManager manager, byte[] packet) {
+            this.manager = manager;
+            this.packet = packet;
+        }
     }
 }

@@ -10,6 +10,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 /** UDP wire format. Sessions/keys are delivered only over the authenticated Minecraft connection. */
 public final class VoiceProtocol {
+
     public static final int VERSION = 1;
     public static final int MAX_DATAGRAM = 256;
     public static final int HEADER_BYTES = 30;
@@ -37,16 +38,22 @@ public final class VoiceProtocol {
             throw new IllegalArgumentException("Invalid datagram size or sequence");
         }
         ByteBuffer header = ByteBuffer.allocate(HEADER_BYTES);
-        header.putInt(MAGIC).put((byte) VERSION).put((byte) type)
-            .putLong(session.getMostSignificantBits()).putLong(session.getLeastSignificantBits()).putLong(sequence);
+        header.putInt(MAGIC)
+            .put((byte) VERSION)
+            .put((byte) type)
+            .putLong(session.getMostSignificantBits())
+            .putLong(session.getLeastSignificantBits())
+            .putLong(sequence);
         Cipher cipher = cipher(Cipher.ENCRYPT_MODE, key, direction, sequence);
         cipher.updateAAD(header.array());
         byte[] body = cipher.doFinal(payload);
-        return ByteBuffer.allocate(HEADER_BYTES + body.length).put(header.array()).put(body).array();
+        return ByteBuffer.allocate(HEADER_BYTES + body.length)
+            .put(header.array())
+            .put(body)
+            .array();
     }
 
-    public static Message open(byte[] packet, UUID session, byte[] key, int direction)
-        throws GeneralSecurityException {
+    public static Message open(byte[] packet, UUID session, byte[] key, int direction) throws GeneralSecurityException {
         if (!session.equals(sessionId(packet))) throw new GeneralSecurityException("Invalid session/header");
         ByteBuffer b = ByteBuffer.wrap(packet);
         int type = packet[5] & 255;
@@ -57,21 +64,26 @@ public final class VoiceProtocol {
         return new Message(type, sequence, cipher.doFinal(packet, HEADER_BYTES, packet.length - HEADER_BYTES));
     }
 
-    private static Cipher cipher(int mode, byte[] key, int direction, long sequence)
-        throws GeneralSecurityException {
+    private static Cipher cipher(int mode, byte[] key, int direction, long sequence) throws GeneralSecurityException {
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        byte[] nonce = ByteBuffer.allocate(12).putInt(direction).putLong(sequence).array();
+        byte[] nonce = ByteBuffer.allocate(12)
+            .putInt(direction)
+            .putLong(sequence)
+            .array();
         cipher.init(mode, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, nonce));
         return cipher;
     }
 
     public static final class Message {
+
         public final int type;
         public final long sequence;
         public final byte[] payload;
 
         Message(int type, long sequence, byte[] payload) {
-            this.type = type; this.sequence = sequence; this.payload = payload;
+            this.type = type;
+            this.sequence = sequence;
+            this.payload = payload;
         }
     }
 }

@@ -2,13 +2,17 @@ package dev.elontusk.gtnhvoice.core;
 
 /** Token bucket with bounded bursts; use a monotonic nanosecond clock. */
 public final class RateLimit {
+
     private double tokens;
     private long updated;
     private final double perSecond;
     private final int capacity;
 
     public RateLimit(double perSecond, int capacity, long now) {
-        this.perSecond = perSecond; this.capacity = capacity; this.tokens = capacity; this.updated = now;
+        this.perSecond = perSecond;
+        this.capacity = capacity;
+        this.tokens = capacity;
+        this.updated = now;
     }
 
     public boolean allow(long now) {
