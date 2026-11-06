@@ -1,0 +1,15 @@
+{
+  "modListVersion": 2,
+  "modList": [{
+    "modid": "${modId}",
+    "name": "${modName}",
+    "description": "Optional proximity voice chat for GTNH. One UDP port; clients without this mod can join normally.",
+    "version": "${modVersion}",
+    "mcversion": "${minecraftVersion}",
+    "url": "https://github.com/Elon-TuskOFF/gtnh-voice-chat",
+    "authorList": ["Elon-TuskOFF"],
+    "requiredMods": [],
+    "dependencies": [],
+    "useDependencyInformation": false
+  }]
+}
