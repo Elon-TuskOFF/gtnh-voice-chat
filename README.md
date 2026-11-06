@@ -6,7 +6,7 @@ Install the same jar on the server and on clients who want voice. Players **with
 
 ## Status
 
-Initial implementation. The standalone audio codec, encryption, and actual loopback UDP relay/client tests pass. The Forge build and in-game compatibility have **not yet been validated**. The last full build attempt was blocked by environment access to the GTNH and Forge Maven hosts. No tested release jar is available yet. See [the in-game checklist](docs/testing.md) before deploying.
+Initial implementation. The full Forge build, formatting checks, and automated tests [pass in GitHub Actions](https://github.com/Elon-TuskOFF/gtnh-voice-chat/actions/runs/42243870440). Core audio/encryption/UDP tests also pass locally on Java 8 and 25. Download the `gtnh-voice-chat` artifact from a successful Actions run for the built jars. **In-game compatibility, microphone/speaker behavior, and external UDP connectivity remain unverified**; complete [the in-game checklist](docs/testing.md) before deploying.
 
 ## Server setup
 

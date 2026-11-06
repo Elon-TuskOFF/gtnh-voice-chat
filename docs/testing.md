@@ -6,6 +6,8 @@
 
 `./gradlew test` wraps the same suite in JUnit. `./gradlew build` must additionally compile the Forge adapter, process resources, reobfuscate the jar, and run the GTNH build checks. Standalone success does not establish Forge or game compatibility.
 
+The full `./gradlew --no-daemon build` and artifact upload succeeded in [GitHub Actions run 42243870440](https://github.com/Elon-TuskOFF/gtnh-voice-chat/actions/runs/42243870440) for commit `00f994f`. This validates the build and automated checks, but not the manual game/audio checklist below.
+
 ## Required game checks before release
 
 Use a real dedicated GTNH server and two GTNH clients. Keep the same pack versions across them. Install the voice mod on the server and only one client first.
